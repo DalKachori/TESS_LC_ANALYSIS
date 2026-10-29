@@ -8,26 +8,32 @@ STYLE_FILE = BASE_DIR / "rose-pine-moon.mplstyle"
 
 search_lcf = lk.search_lightcurve('L 98-59', mission = 'TESS', author = 'SPOC', exptime = 120)
 
-print(search_lcf)
+lc = search_lcf[0].download()
+lc = lc.normalize() #normalize the data
+lc = lc.remove_nans() #removed missing data 
 
-lc = search_lcf[0].download().remove_nans()
+lc_clean, mask = lc.remove_outliers(sigma=3, return_mask = True) 
+#use sigma clipping with sigma = 5 (values more than 5 median away will be removed) and returns mask
 
-pdcsap = lc.select_flux('pdcsap_flux').normalize()
-sap = lc.select_flux('sap_flux').normalize()
+outliers = lc*mask
 
+print(f"removed {np.sum(mask)} outliers")
+'''
+removes 1 outliers with sigma = 5
+removes 4 outliers with sigma = 4
+removes 104 outleirs with sigma = 3
+'''
+'''
+the current subject does not seem to have too many obvious outliers, I decided to use sigma = 4 since it only removes
+the most obvious ones without trying to clean up noise
+'''
 
 plt.style.use(STYLE_FILE)
-fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(10, 6))
 
-ax1.plot(sap.time.value, sap.flux.value, markersize=2, label='SAP Flux', alpha=0.5)
-ax1.plot(pdcsap.time.value, pdcsap.flux.value, markersize=2, label='PDCSAP Flux', alpha=0.5)
-ax1.set_ylabel('Normalized Flux')
-ax1.legend()
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 5), sharex=True)
+ax1.plot(lc_clean.time.value, lc_clean.flux.value, markersize=2, label='cleaned PDCSAP Flux')
+ax1.plot(lc.time.value, lc.flux.value)
+ax2.plot(outliers.time.value, outliers.flux.value, markersize=2, label='PDCSAP Flux')
 
-ax2.plot(pdcsap.time.value, pdcsap.flux_err.value, '.', markersize=2, label='PDCSAP Error')
-ax2.set_xlabel('Time (BTJD)')
-ax2.set_ylabel('Flux Error')
-ax2.legend()
-
-plt.savefig('test_lightcurve.png', dpi=300, bbox_inches='tight')
+plt.savefig('cleaned_lightcurve.png', dpi=300, bbox_inches='tight')
 plt.show()
