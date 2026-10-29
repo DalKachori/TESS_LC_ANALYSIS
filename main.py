@@ -12,8 +12,10 @@ lc = search_lcf[0].download()
 lc = lc.normalize() #normalize the data
 lc = lc.remove_nans() #removed missing data 
 
-lc_clean, mask = lc.remove_outliers(sigma=3, return_mask = True) 
-#use sigma clipping with sigma = 5 (values more than 5 median away will be removed) and returns mask
+lc_flat = lc.flatten(window_length = 401) # Flatten the data / remove the long term trends using Savitzky-Golay filter 
+
+lc_clean_flat, mask = lc_flat.remove_outliers(sigma=3, return_mask = True) 
+# use sigma clipping with speicified sigma (values more than 3 median away will be removed) and returns mask
 
 outliers = lc*mask
 
@@ -31,9 +33,11 @@ the most obvious ones without trying to clean up noise
 plt.style.use(STYLE_FILE)
 
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 5), sharex=True)
-ax1.plot(lc_clean.time.value, lc_clean.flux.value, markersize=2, label='cleaned PDCSAP Flux')
-ax1.plot(lc.time.value, lc.flux.value)
-ax2.plot(outliers.time.value, outliers.flux.value, markersize=2, label='PDCSAP Flux')
+ax1.plot(lc_clean_flat.time.value, lc_clean_flat.flux.value, markersize=2, label='cleaned flattened PDCSAP Flux')
+ax2.plot(lc_flat.time.value, lc_flat.flux.value - lc.flux.value, label = 'flattening error curve')
 
-plt.savefig('cleaned_lightcurve.png', dpi=300, bbox_inches='tight')
+'''
+It is evident from the error curve that the raw function's original baseline had an upward bowl shape
+'''
+plt.savefig('clean_flat_lightcurve.png', dpi=300, bbox_inches='tight')
 plt.show()
